@@ -102,7 +102,7 @@ union xer_t
    struct
    {
       uint32_t byteCount : 7; // For lmwx, stmwx
-   uint32_t: 22;
+      uint32_t : 22;
       uint32_t ca : 1;        // Carry
       uint32_t ov : 1;        // Overflow
       uint32_t so : 1;        // Sticky OV
@@ -110,7 +110,7 @@ union xer_t
 
    struct
    {
-   uint32_t: 28;
+      uint32_t : 28;
       uint32_t crxr; // [0-3] condition stuff in xer
    };
 };
@@ -124,11 +124,11 @@ union msr_t
    {
       uint32_t le : 1;  // Little-endian mode enabled
       uint32_t ri : 1;  // Exception is recoverable
-   uint32_t: 2;
+      uint32_t : 2;
       uint32_t dr : 1;  // Data address translation enabled
       uint32_t ir : 1;  // Instruction address translation enabled
       uint32_t ip : 1;  // Exception prefix
-   uint32_t: 1;
+      uint32_t : 1;
       uint32_t fe1 : 1; // Floating-point exception mode 1
       uint32_t be : 1;  // Branch trace enabled
       uint32_t se : 1;  // Single-step trace enabled
@@ -138,9 +138,9 @@ union msr_t
       uint32_t pr : 1;  // Privelege level (0 = supervisor, 1 = user)
       uint32_t ee : 1;  // External interrupt enabled
       uint32_t ile : 1; // Exception little-endian mode
-   uint32_t: 1;
+      uint32_t : 1;
       uint32_t pow : 1; // Power management enabled
-   uint32_t: 13;
+      uint32_t : 13;
    };
 };
 

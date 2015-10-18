@@ -1,95 +1,476 @@
-// Integer Arithmetic
-INS(add, (rD), (rA, rB), (oe, rc), (opcd == 31, xo2 == 266), "Add")
-INS(addc, (rD, XERC), (rA, rB), (oe, rc), (opcd == 31, xo2 == 10), "Add with Carry")
-INS(adde, (rD), (rA, rB, XERC), (oe, rc), (opcd == 31, xo2 == 138), "Add Extended")
-INS(addi, (rD), (rA, simm), (), (opcd == 14), "Add Immediate")
-INS(addic, (rD, XERC), (rA, simm), (), (opcd == 12), "Add Immediate with Carry")
-INS(addicx, (rD, XERC), (rA, simm), (oe, rc), (opcd == 13), "Add Immediate with Carry and Record")
-INS(addis, (rD), (rA, simm), (), (opcd == 15), "Add Immediate Shifted")
-INS(addme, (rD), (rA, XERC), (oe, rc), (opcd == 31, xo2 == 234, !_16_20), "Add to Minus One Extended")
-INS(addze, (rD), (rA, XERC), (oe, rc), (opcd == 31, xo2 == 202, !_16_20), "Add to Zero Extended")
-INS(divw, (rD), (rA, rB), (oe, rc), (opcd == 31, xo2 == 491), "Divide Word")
-INS(divwu, (rD), (rA, rB), (oe, rc), (opcd == 31, xo2 == 459), "Divide Word Unsigned")
-INS(mulhw, (rD), (rA, rB), (rc), (opcd == 31, xo2 == 75, !_21), "Multiply High Word")
-INS(mulhwu, (rD), (rA, rB), (rc), (opcd == 31, xo2 == 11, !_21), "Multiply High Word Unsigned")
-INS(mulli, (rD), (rA, simm), (), (opcd == 7), "Multiply Low Immediate")
-INS(mullw, (rD), (rA, rB), (oe, rc), (opcd == 31, xo2 == 235), "Multiply Low Word")
-INS(neg, (rD), (rA), (oe, rc), (opcd == 31, xo2 == 104, !_16_20), "Negate")
-INS(subf, (rD), (rA, rB), (oe, rc), (opcd == 31, xo2 == 40), "Subtract From")
-INS(subfc, (rD), (rA, rB), (oe, rc), (opcd == 31, xo2 == 8), "Subtract From with Carry")
-INS(subfe, (rD), (rA, rB, XERC), (oe, rc), (opcd == 31, xo2 == 136), "Subtract From Extended")
-INS(subfic, (rD, XERC), (rA, simm), (), (opcd == 8), "Subtract From Immediate with Carry")
-INS(subfme, (rD), (rA, XERC), (oe, rc), (opcd == 31, xo2 == 232, !_16_20), "Subtract From Minus One Extended")
-INS(subfze, (rD), (rA, XERC), (oe, rc), (opcd == 31, xo2 == 200, !_16_20), "Subtract From Zero Extended")
+#define NOMINMAX
+#include <cassert>
+#include <cstdint>
+#include <fstream>
+#include <iostream>
+#include <memory>
+#include <vector>
+#include <spdlog/spdlog.h>
+#include "be_val.h"
+#include "bitutils.h"
+#include "cpu/state.h"
+#include "cpu/instructiondata.h"
+#include "testfile.h"
 
-// Integer Compare
-INS(cmp, (crfD), (rA, rB, XERSO), (l), (opcd == 31, xo1 == 0, !_9, !_31), "Compare")
-INS(cmpi, (crfD), (rA, simm, XERSO), (l), (opcd == 11, !_9), "Compare Immediate")
-INS(cmpl, (crfD), (rA, rB, XERSO), (l), (opcd == 31, xo1 == 32, !_9, !_31), "Compare Logical")
-INS(cmpli, (crfD), (rA, uimm, XERSO), (l), (opcd == 10, !_9), "Compare Logical Immediate")
+static const auto GPR_BASE = 3;
+static const auto FPR_BASE = 1;
+static const auto CRF_BASE = 2;
+static const auto CRB_BASE = 8;
 
-// Integer Logical
-INS(and_, (rA), (rS, rB), (rc), (opcd == 31, xo1 == 28), "AND")
-INS(andc, (rA), (rS, rB), (rc), (opcd == 31, xo1 == 60), "AND with Complement")
-INS(andi, (rA), (rS, uimm), (oe, rc), (opcd == 28), "AND Immediate")
-INS(andis, (rA), (rS, uimm), (oe, rc), (opcd == 29), "AND Immediate Shifted")
-INS(cntlzw, (rA), (rS), (rc), (opcd == 31, xo1 == 26, !_16_20), "Count Leading Zeroes Word")
-INS(eqv, (rA), (rS, rB), (rc), (opcd == 31, xo1 == 284), "Equivalent")
-INS(extsb, (rA), (rS), (rc), (opcd == 31, xo1 == 954, !_16_20), "Extend Sign Byte")
-INS(extsh, (rA), (rS), (rc), (opcd == 31, xo1 == 922, !_16_20), "Extend Sign Half Word")
-INS(nand, (rA), (rS, rB), (rc), (opcd == 31, xo1 == 476), "NAND")
-INS(nor, (rA), (rS, rB), (rc), (opcd == 31, xo1 == 124), "NOR")
-INS(or_, (rA), (rS, rB), (rc), (opcd == 31, xo1 == 444), "OR")
-INS(orc, (rA), (rS, rB), (rc), (opcd == 31, xo1 == 412), "OR with Complement")
-INS(ori, (rA), (rS, uimm), (), (opcd == 24), "OR Immediate")
-INS(oris, (rA), (rS, uimm), (), (opcd == 25), "OR Immediate Shifted")
-INS(xor_, (rA), (rS, rB), (rc), (opcd == 31, xo1 == 316), "XOR")
-INS(xori, (rA), (rS, uimm), (), (opcd == 26), "XOR Immediate")
-INS(xoris, (rA), (rS, uimm), (), (opcd == 27), "XOR Immediate Shifted")
+std::vector<InstructionID> gIntegerArithmetic =
+{
+   InstructionID::add,
+   InstructionID::addc,
+   InstructionID::adde,
+   InstructionID::addi,
+   InstructionID::addic,
+   InstructionID::addicx,
+   InstructionID::addis,
+   InstructionID::addme,
+   InstructionID::addze,
+   InstructionID::divw,
+   InstructionID::divwu,
+   InstructionID::mulhw,
+   InstructionID::mulhwu,
+   InstructionID::mulli,
+   InstructionID::mullw,
+   InstructionID::neg,
+   InstructionID::subf,
+   InstructionID::subfc,
+   InstructionID::subfe,
+   InstructionID::subfic,
+   InstructionID::subfme,
+   InstructionID::subfze,
+};
 
-// Integer Rotate
-INS(rlwimi, (rA), (rS, rA, sh, mb, me), (rc), (opcd == 20), "Rotate Left Word Immediate then Mask Insert")
-INS(rlwinm, (rA), (rS, sh, mb, me), (rc), (opcd == 21), "Rotate Left Word Immediate then AND with Mask")
-INS(rlwnm, (rA), (rS, rB, mb, me), (rc), (opcd == 23), "Rotate Left Word then AND with Mask")
+std::vector<InstructionID> gIntegerLogical =
+{
+   InstructionID::and_,
+   InstructionID::andc,
+   InstructionID::andi,
+   InstructionID::andis,
+   InstructionID::cntlzw,
+   InstructionID::eqv,
+   InstructionID::extsb,
+   InstructionID::extsh,
+   InstructionID::nand,
+   InstructionID::nor,
+   InstructionID::or_,
+   InstructionID::orc,
+   InstructionID::ori,
+   InstructionID::oris,
+   InstructionID::xor_,
+   InstructionID::xori,
+   InstructionID::xoris,
+};
 
-// Integer Shift
-INS(slw, (rA), (rS, rB), (rc), (opcd == 31, xo1 == 24), "Shift Left Word")
-INS(sraw, (rA, XERC), (rS, rB), (rc), (opcd == 31, xo1 == 792), "Shift Right Arithmetic Word")
-INS(srawi, (rA, XERC), (rS, sh), (rc), (opcd == 31, xo1 == 824), "Shift Right Arithmetic Word Immediate")
-INS(srw, (rA), (rS, rB), (rc), (opcd == 31, xo1 == 536), "Shift Right Word")
+std::vector<InstructionID> gIntegerCompare =
+{
+   InstructionID::cmp,
+   InstructionID::cmpi,
+   InstructionID::cmpl,
+   InstructionID::cmpli,
+};
 
-// Floating-Point Arithmetic
-INS(fadd, (frD, FCRISI, FCRSNAN), (frA, frB), (frc), (opcd == 63, xo4 == 21, !_21_25), "Floating Add")
-INS(fadds, (frD, FCRISI, FCRSNAN), (frA, frB), (frc), (opcd == 59, xo4 == 21, !_21_25), "Floating Add Single")
-INS(fdiv, (frD, FCRZDZ, FCRIDI, FCRSNAN), (frA, frB), (frc), (opcd == 63, xo4 == 18, !_21_25), "Floating Divide")
-INS(fdivs, (frD), (frA, frB), (frc), (opcd == 59, xo4 == 18, !_21_25), "Floating Divide Single")
-INS(fmul, (frD), (frA, frC), (frc), (opcd == 63, xo4 == 25, !_16_20), "Floating Multiply")
-INS(fmuls, (frD), (frA, frC), (frc), (opcd == 59, xo4 == 25, !_16_20), "Floating Multiply Single")
-INS(fres, (frD), (frB), (frc), (opcd == 59, xo4 == 24, !_11_15, !_21_25), "Floating Reciprocal Estimate Single")
-INS(frsqrte, (frD), (frB), (frc), (opcd == 63, xo4 == 26, !_11_15, !_21_25), "Floating Reciprocal Square Root Estimate")
-INS(fsub, (frD), (frA, frB), (frc), (opcd == 63, xo4 == 20, !_21_25), "Floating Sub")
-INS(fsubs, (frD), (frA, frB), (frc), (opcd == 59, xo4 == 20, !_21_25), "Floating Sub Single")
-INS(fsel, (frD), (frA, frB, frC), (frc), (opcd == 63, xo4 == 23), "Floating Select")
+std::vector<InstructionID> gIntegerShift =
+{
+   InstructionID::slw,
+   InstructionID::sraw,
+   InstructionID::srawi,
+   InstructionID::srw,
+};
 
-// Floating-Point Multiply-Add
-INS(fmadd, (frD), (frA, frB, frC), (rc), (opcd == 63, xo4 == 29), "Floating Multiply-Add")
-INS(fmadds, (frD), (frA, frB, frC), (rc), (opcd == 59, xo4 == 29), "Floating Multiply-Add Single")
-INS(fmsub, (frD), (frA, frB, frC), (rc), (opcd == 63, xo4 == 28), "Floating Multiply-Sub")
-INS(fmsubs, (frD), (frA, frB, frC), (rc), (opcd == 59, xo4 == 28), "Floating Multiply-Sub Single")
-INS(fnmadd, (frD), (frA, frB, frC), (rc), (opcd == 63, xo4 == 31), "Floating Negative Multiply-Add")
-INS(fnmadds, (frD), (frA, frB, frC), (rc), (opcd == 59, xo4 == 31), "Floating Negative Multiply-Add Single")
-INS(fnmsub, (frD), (frA, frB, frC), (rc), (opcd == 63, xo4 == 30), "Floating Negative Multiply-Sub")
-INS(fnmsubs, (frD), (frA, frB, frC), (rc), (opcd == 59, xo4 == 30), "Floating Negative Multiply-Sub Single")
+std::vector<InstructionID> gIntegerRotate =
+{
+   InstructionID::rlwimi,
+   InstructionID::rlwinm,
+   InstructionID::rlwnm,
+};
 
-// Floating-Point Rounding and Conversion
-INS(fctiw, (frD), (frB), (rc), (opcd == 63, xo1 == 14, !_11_15), "Floating Convert to Integer Word")
-INS(fctiwz, (frD), (frB), (rc), (opcd == 63, xo1 == 15, !_11_15), "Floating Convert to Integer Word with Round toward Zero")
-INS(frsp, (frD), (frB), (rc), (opcd == 63, xo1 == 12, !_11_15), "Floating Round to Single")
+std::vector<InstructionID> gConditionRegisterLogical =
+{
+   InstructionID::crand,
+   InstructionID::crandc,
+   InstructionID::creqv,
+   InstructionID::crnand,
+   InstructionID::crnor,
+   InstructionID::cror,
+   InstructionID::crorc,
+   InstructionID::crxor,
+   //InstructionID::mcrf,
+};
 
-// Floating-Point Compare
-INS(fcmpo, (crfD), (frA, frB), (), (opcd == 63, xo1 == 32, !_9_10, !_31), "Floating Compare Ordered")
-INS(fcmpu, (crfD), (frA, frB), (), (opcd == 63, xo1 == 0, !_9_10, !_31), "Floating Compare Unordered")
+std::vector<InstructionID> gFloatArithmetic =
+{
+   InstructionID::fadd,
+   InstructionID::fadds,
+   InstructionID::fdiv,
+   InstructionID::fdivs,
+   InstructionID::fmul,
+   InstructionID::fmuls,
+   InstructionID::fres,
+   InstructionID::fsub,
+   InstructionID::fsubs,
+   InstructionID::fsel,
+};
 
+std::vector<InstructionID> gFloatArithmeticMuladd =
+{
+   InstructionID::fmadd,
+   InstructionID::fmadds,
+   InstructionID::fmsub,
+   InstructionID::fmsubs,
+   InstructionID::fnmadd,
+   InstructionID::fnmadds,
+   InstructionID::fnmsub,
+   InstructionID::fnmsubs,
+};
+
+std::vector<InstructionID> gFloatRound =
+{
+   InstructionID::fctiw,
+   InstructionID::fctiwz,
+   InstructionID::frsp,
+};
+
+std::vector<InstructionID> gFloatMove =
+{
+   InstructionID::fabs,
+   InstructionID::fmr,
+   InstructionID::fnabs,
+   InstructionID::fneg,
+};
+
+std::vector<InstructionID> gFloatCompare =
+{
+   InstructionID::fcmpo,
+   InstructionID::fcmpu,
+};
+
+auto gTestInstructions =
+{
+   gIntegerArithmetic,
+   gIntegerLogical,
+   gIntegerCompare,
+   gIntegerShift,
+   gIntegerRotate,
+   gConditionRegisterLogical,
+   gFloatArithmetic,
+   gFloatArithmeticMuladd,
+   gFloatRound,
+   gFloatMove,
+};
+
+std::vector<uint32_t> gValuesCRB =
+{
+   0,
+   1,
+};
+
+std::vector<uint32_t> gValuesGPR =
+{
+   0,
+   1,
+   static_cast<uint32_t>(-1),
+   static_cast<uint32_t>(std::numeric_limits<int32_t>::min()),
+   static_cast<uint32_t>(std::numeric_limits<int32_t>::max()),
+};
+
+std::vector<int16_t> gValuesSIMM =
+{
+   0,
+   1,
+   -1,
+   std::numeric_limits<int16_t>::min(),
+   std::numeric_limits<int16_t>::max(),
+};
+
+std::vector<uint16_t> gValuesUIMM =
+{
+   0,
+   1,
+   static_cast<uint16_t>(-1),
+   static_cast<uint16_t>(std::numeric_limits<int16_t>::min()),
+   static_cast<uint16_t>(std::numeric_limits<int16_t>::max()),
+};
+
+std::vector<double> gValuesFPR =
+{
+   0.0,
+   1.0,
+   -1.0,
+   std::numeric_limits<double>::min(),
+   std::numeric_limits<double>::max(),
+   std::numeric_limits<double>::lowest(),
+   std::numeric_limits<double>::infinity(),
+   std::numeric_limits<double>::quiet_NaN(),
+   std::numeric_limits<double>::signaling_NaN(),
+   std::numeric_limits<double>::denorm_min(),
+   std::numeric_limits<double>::epsilon(),
+};
+
+std::vector<uint32_t> gValuesXERC =
+{
+   0,
+   1
+};
+
+std::vector<uint32_t> gValuesXERSO =
+{
+   0,
+   1
+};
+
+std::vector<uint32_t> gValuesSH =
+{
+   0, 15, 23, 31
+};
+
+std::vector<uint32_t> gValuesMB =
+{
+   0, 15, 23, 31
+};
+
+std::vector<uint32_t> gValuesME =
+{
+   0, 15, 23, 31
+};
+
+void
+setCRB(RegisterState &state, uint32_t bit, uint32_t value)
+{
+   state.cr.value = set_bit_value(state.cr.value, 31 - bit, value);
+}
+
+void genTests(InstructionData *data)
+{
+   std::vector<size_t> indexCur, indexMax;
+   std::vector<bool> flagSet;
+   auto complete = false;
+   auto completeIndices = false;
+   TestFile testFile;
+
+   for (auto i = 0; i < data->read.size(); ++i) {
+      auto &field = data->read[i];
+      indexCur.push_back(0);
+
+      switch (field) {
+      case Field::rA:
+      case Field::rB:
+      case Field::rS:
+         indexMax.push_back(gValuesGPR.size());
+         break;
+      case Field::frA:
+      case Field::frB:
+      case Field::frC:
+      case Field::frS:
+         indexMax.push_back(gValuesFPR.size());
+         break;
+      case Field::crbA:
+      case Field::crbB:
+         indexMax.push_back(gValuesCRB.size());
+         break;
+      case Field::simm:
+         indexMax.push_back(gValuesSIMM.size());
+         break;
+      case Field::sh:
+         indexMax.push_back(gValuesSH.size());
+         break;
+      case Field::mb:
+         indexMax.push_back(gValuesMB.size());
+         break;
+      case Field::me:
+         indexMax.push_back(gValuesME.size());
+         break;
+      case Field::uimm:
+         indexMax.push_back(gValuesUIMM.size());
+         break;
+      case Field::XERC:
+         indexMax.push_back(gValuesXERC.size());
+         break;
+      case Field::XERSO:
+         indexMax.push_back(gValuesXERSO.size());
+         break;
+      default:
+         assert(false);
+      }
+   }
+
+   for (auto i = 0; i < data->flags.size(); ++i) {
+      flagSet.push_back(false);
+   }
+
+   while (!complete) {
+      TestData test;
+      uint32_t gpr = 0;
+      uint32_t fpr = 0;
+      uint32_t crf = 0;
+      uint32_t crb = 0;
+
+      test.instr = gInstructionTable.encode(data->id);
+
+      for (auto i = 0; i < data->read.size(); ++i) {
+         auto index = indexCur[i];
+
+         switch (data->read[i]) {
+         case Field::rA:
+            test.instr.rA = gpr + GPR_BASE;
+            test.input.gpr[gpr++] = gValuesGPR[index];
+            break;
+         case Field::rB:
+            test.instr.rB = gpr + GPR_BASE;
+            test.input.gpr[gpr++] = gValuesGPR[index];
+            break;
+         case Field::rS:
+            test.instr.rS = gpr + GPR_BASE;
+            test.input.gpr[gpr++] = gValuesGPR[index];
+            break;
+         case Field::frA:
+            test.instr.frA = fpr + FPR_BASE;
+            test.input.fr[fpr++] = gValuesFPR[index];
+            break;
+         case Field::frB:
+            test.instr.frB = fpr + FPR_BASE;
+            test.input.fr[fpr++] = gValuesFPR[index];
+            break;
+         case Field::frC:
+            test.instr.frC = fpr + FPR_BASE;
+            test.input.fr[fpr++] = gValuesFPR[index];
+            break;
+         case Field::frS:
+            test.instr.frS = fpr + FPR_BASE;
+            test.input.fr[fpr++] = gValuesFPR[index];
+            break;
+         case Field::crbA:
+            test.instr.crbA = (crb++) + CRB_BASE;
+            setCRB(test.input, test.instr.crbA, gValuesCRB[index]);
+            break;
+         case Field::crbB:
+            test.instr.crbB = (crb++) + CRB_BASE;
+            setCRB(test.input, test.instr.crbB, gValuesCRB[index]);
+            break;
+         case Field::simm:
+            test.instr.simm = gValuesSIMM[index];
+            break;
+         case Field::sh:
+            test.instr.sh = gValuesSH[index];
+            break;
+         case Field::mb:
+            test.instr.mb = gValuesMB[index];
+            break;
+         case Field::me:
+            test.instr.me = gValuesME[index];
+            break;
+         case Field::uimm:
+            test.instr.uimm = gValuesUIMM[index];
+            break;
+         case Field::XERC:
+            test.input.xer.ca = gValuesXERC[index];
+            break;
+         case Field::XERSO:
+            test.input.xer.so = gValuesXERSO[index];
+            break;
+         default:
+            assert(false);
+         }
+      }
+
+      for (auto i = 0; i < data->write.size(); ++i) {
+         switch (data->write[i]) {
+         case Field::rA:
+            test.instr.rA = gpr + GPR_BASE;
+            gpr++;
+            break;
+         case Field::rD:
+            test.instr.rD = gpr + GPR_BASE;
+            gpr++;
+            break;
+         case Field::frD:
+            test.instr.frD = gpr + GPR_BASE;
+            fpr++;
+            break;
+         case Field::crfD:
+            test.instr.crfD = crf + CRF_BASE;
+            crf++;
+            break;
+         case Field::crbD:
+            test.instr.crbD = crb + CRB_BASE;
+            crb++;
+            break;
+         case Field::XERC:
+         case Field::XERSO:
+         case Field::FCRISI:
+         case Field::FCRZDZ:
+         case Field::FCRIDI:
+         case Field::FCRSNAN:
+            break;
+         default:
+            assert(false);
+         }
+      }
+
+      // Execute state/instr
+      testFile.tests.emplace_back(test);
+
+      // Increase indices
+      for (auto i = 0; i < indexCur.size(); ++i) {
+         indexCur[i]++;
+
+         if (indexCur[i] < indexMax[i]) {
+            break;
+         } else if (indexCur[i] == indexMax[i]) {
+            indexCur[i] = 0;
+
+            if (i == indexCur.size() - 1) {
+               completeIndices = true;
+            }
+         }
+      }
+
+      if (completeIndices) {
+         if (flagSet.size() == 0) {
+            complete = true;
+            break;
+         }
+
+         completeIndices = false;
+
+         // Do next flag!
+         for (auto i = 0; i < flagSet.size(); ++i) {
+            if (!flagSet[i]) {
+               flagSet[i] = true;
+               break;
+            } else {
+               flagSet[i] = false;
+
+               if (i == flagSet.size() - 1) {
+                  complete = true;
+               }
+            }
+         }
+      }
+   }
+
+   std::ofstream out { std::string("tests/cpu/input/") + data->name, std::ofstream::out };
+   cereal::BinaryOutputArchive archive(out);
+   archive(testFile);
+}
+
+int main(int argc, char **argv)
+{
+   gInstructionTable.initialise();
+
+   for (auto &group : gTestInstructions) {
+      for (auto id : group) {
+         auto data = gInstructionTable.find(id);
+         genTests(data);
+      }
+   }
+
+   return 0;
+}
+
+/*
 // Floating-Point Status and Control Register
 INS(mcrfs, (crfD), (crfS), (), (opcd == 63, xo1 == 64, !_9_10, !_14_15, !_16_20, !_31), "")
 INS(mffs, (frD), (), (rc), (opcd == 63, xo1 == 583, !_11_15, !_16_20), "")
@@ -172,28 +553,11 @@ INS(stfsu, (rA), (frS, rA, d), (), (opcd == 53), "Store Floating-Point Single wi
 INS(stfsx, (), (frS, rA, rB), (), (opcd == 31, xo1 == 663, !_31), "Store Floating-Point Single Indexed")
 INS(stfsux, (rA), (frS, rA, rB), (), (opcd == 31, xo1 == 695, !_31), "Store Floating-Point Single with Update Indexed")
 
-// Floating-Point Move
-INS(fabs, (frD), (frB), (rc), (opcd == 63, xo1 == 264, !_11_15), "Floating Absolute Value")
-INS(fmr, (frD), (frB), (rc), (opcd == 63, xo1 == 72, !_11_15), "Floating Move Register")
-INS(fnabs, (frD), (frB), (rc), (opcd == 63, xo1 == 136, !_11_15), "Floating Negative Absolute Value")
-INS(fneg, (frD), (frB), (rc), (opcd == 63, xo1 == 40, !_11_15), "Floating Negate")
-
 // Branch
 INS(b, (), (li), (aa, lk), (opcd == 18), "Branch")
 INS(bc, (bo), (bi, bd), (aa, lk), (opcd == 16), "Branch Conditional")
 INS(bcctr, (bo), (bi, CTR), (lk), (opcd == 19, xo1 == 528, !_16_20), "Branch Conditional to CTR")
 INS(bclr, (bo), (bi, LR), (lk), (opcd == 19, xo1 == 16, !_16_20), "Branch Conditional to LR")
-
-// Condition Register Logical
-INS(crand, (crbD), (crbA, crbB), (), (opcd == 19, xo1 == 257, !_31), "Condition Register AND")
-INS(crandc, (crbD), (crbA, crbB), (), (opcd == 19, xo1 == 129, !_31), "Condition Register AND with Complement")
-INS(creqv, (crbD), (crbA, crbB), (), (opcd == 19, xo1 == 289, !_31), "Condition Register Equivalent")
-INS(crnand, (crbD), (crbA, crbB), (), (opcd == 19, xo1 == 225, !_31), "Condition Register NAND")
-INS(crnor, (crbD), (crbA, crbB), (), (opcd == 19, xo1 == 33, !_31), "Condition Register NOR")
-INS(cror, (crbD), (crbA, crbB), (), (opcd == 19, xo1 == 449, !_31), "Condition Register OR")
-INS(crorc, (crbD), (crbA, crbB), (), (opcd == 19, xo1 == 417, !_31), "Condition Register OR with Complement")
-INS(crxor, (crbD), (crbA, crbB), (), (opcd == 19, xo1 == 193, !_31), "Condition Register XOR")
-INS(mcrf, (crfD), (crfS), (), (opcd == 19, xo1 == 0, !_9_10, !_14_15, !_16_20, !_31), "Move Condition Register Field")
 
 // System Linkage
 INS(rfi, (), (), (), (opcd == 19, xo1 == 50, !_6_10, !_11_15, !_16_20, !_31), "")
@@ -278,3 +642,4 @@ INS(ps_merge00, (frD), (frA, frB), (rc), (opcd == 4, xo1 == 528), "Paired Single
 INS(ps_merge01, (frD), (frA, frB), (rc), (opcd == 4, xo1 == 560), "Paired Single Merge Direct")
 INS(ps_merge10, (frD), (frA, frB), (rc), (opcd == 4, xo1 == 592), "Paired Single Merge Swapped")
 INS(ps_merge11, (frD), (frA, frB), (rc), (opcd == 4, xo1 == 624), "Paired Single Merge Low")
+*/

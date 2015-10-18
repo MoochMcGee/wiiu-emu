@@ -500,7 +500,7 @@ executeInstrTest(uint32_t test_seed)
       TraceFieldValue iVal, jVal;
       saveStateField(&iState, field, iVal);
       saveStateField(&jState, field, jVal);
-      
+
       if (!compareStateField(field, iVal, jVal)) {
          gLog->warn("{}({:08x}) :: JIT does not match Interp on {}", data->name, test_seed, getStateFieldName(field));
       }

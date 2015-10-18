@@ -1,12 +1,19 @@
 #include <cassert>
 #include <cstdint>
 #include <iostream>
+#include <fstream>
 #include <memory>
 #include <vector>
 #include <ovsocket/socket.h>
 #include <ovsocket/networkthread.h>
+#include <experimental/filesystem>
 #include "be_val.h"
-#include "instructiondata.h"
+#include "testfile.h"
+#include "cpu/instructiondata.h"
+
+namespace fs = std::experimental::filesystem;
+
+std::vector<TestFile> gTestSet;
 
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "ovsocket.lib")
@@ -14,20 +21,20 @@
 using namespace ovs;
 using namespace std::placeholders;
 
-struct TestState
+struct HWRegisterState
 {
    be_val<uint32_t> xer;
    be_val<uint32_t> cr;
    be_val<uint32_t> fpscr;
-   be_val<uint32_t> __pad;
+   be_val<uint32_t> ctr;
    be_val<uint32_t> r3;
    be_val<uint32_t> r4;
    be_val<uint32_t> r5;
    be_val<uint32_t> r6;
-   be_val<double> fr1;
-   be_val<double> fr2;
-   be_val<double> fr3;
-   be_val<double> fr4;
+   be_val<double> f1;
+   be_val<double> f2;
+   be_val<double> f3;
+   be_val<double> f4;
 };
 
 struct PacketHeader
@@ -61,11 +68,11 @@ struct ExecuteGeneralTestPacket : PacketHeader
    {
       size = sizeof(ExecuteGeneralTestPacket);
       command = PacketHeader::ExecuteGeneralTest;
-      memset(&state, 0, sizeof(TestState));
+      memset(&state, 0, sizeof(HWRegisterState));
    }
 
    be_val<uint32_t> instr;
-   TestState state;
+   HWRegisterState state;
 };
 
 class TestServer
@@ -86,21 +93,74 @@ public:
 
       // Read first packet
       mSocket->recvFill(sizeof(PacketHeader));
+
+      // Initialise test iterators
+      mTestFile = gTestSet.begin();
+      mTestData = mTestFile->tests.begin();
    }
+
+   std::vector<TestFile>::iterator mTestFile;
+   std::vector<TestData>::iterator mTestData;
 
 private:
    void sendNextTest()
    {
-      ExecuteGeneralTestPacket test;
-      test.instr = 0x38600539;
+      if (mTestData == mTestFile->tests.end()) {
+         std::ofstream out("tests/cpu/wiiu/" + mTestFile->name);
+         cereal::BinaryOutputArchive ar(out);
+         ar(*mTestFile);
+         ++mTestFile;
 
-      // r3 = r4 + 337, r4 = 1000
-      auto addi = gInstructionTable.encode(InstructionID::addi);
-      addi.rA = 4;
-      addi.rD = 3;
-      addi.simm = 337;
-      test.state.r4 = 1000;
-      mSocket->send(reinterpret_cast<const char *>(&test), sizeof(ExecuteGeneralTestPacket));
+         if (mTestFile == gTestSet.end()) {
+            mSocket->disconnect();
+            return;
+         } else {
+            mTestData = mTestFile->tests.begin();
+         }
+      }
+
+      TestData &test = *mTestData;
+      ExecuteGeneralTestPacket packet;
+      std::cout << "Send test for " << test.instr.value << std::endl;
+      packet.instr = test.instr.value;
+      packet.state.xer = test.input.xer.value;
+      packet.state.cr = test.input.cr.value;
+      packet.state.fpscr = test.input.fpscr.value;
+      packet.state.ctr = test.input.ctr;
+      packet.state.r3 = test.input.gpr[0];
+      packet.state.r4 = test.input.gpr[1];
+      packet.state.r5 = test.input.gpr[2];
+      packet.state.r6 = test.input.gpr[3];
+      packet.state.f1 = test.input.fr[0];
+      packet.state.f2 = test.input.fr[1];
+      packet.state.f3 = test.input.fr[2];
+      packet.state.f4 = test.input.fr[3];
+
+      mSocket->send(reinterpret_cast<const char *>(&packet), sizeof(ExecuteGeneralTestPacket));
+   }
+
+   void handleTestResult(ExecuteGeneralTestPacket *result)
+   {
+      TestData &test = *mTestData;
+      assert(test.instr.value == result->instr.value());
+
+      std::cout << "Received test result for instruction " << result->instr << std::endl;
+
+      test.output.xer.value = result->state.xer;
+      test.output.cr.value = result->state.cr;
+      test.output.fpscr.value = result->state.fpscr;
+      test.output.ctr = result->state.ctr;
+      test.output.gpr[0] = result->state.r3;
+      test.output.gpr[1] = result->state.r4;
+      test.output.gpr[2] = result->state.r5;
+      test.output.gpr[3] = result->state.r6;
+      test.output.fr[0] = result->state.f1;
+      test.output.fr[1] = result->state.f2;
+      test.output.fr[2] = result->state.f3;
+      test.output.fr[3] = result->state.f4;
+
+      mTestData++;
+      sendNextTest();
    }
 
    void onReceivePacket(PacketHeader *packet)
@@ -116,20 +176,7 @@ private:
       case PacketHeader::ExecuteGeneralTest:
       {
          auto result = reinterpret_cast<ExecuteGeneralTestPacket *>(packet);
-         std::cout << "Received test result for instruction " << result->instr << std::endl;
-         std::cout << "xer = " << result->state.xer << std::endl;
-         std::cout << "cr = " << result->state.cr << std::endl;
-         std::cout << "fpscr = " << result->state.fpscr << std::endl;
-         std::cout << "r3 = " << result->state.r3 << std::endl;
-         std::cout << "r4 = " << result->state.r4 << std::endl;
-         std::cout << "r5 = " << result->state.r5 << std::endl;
-         std::cout << "r6 = " << result->state.r6 << std::endl;
-         std::cout << "fr1 = " << result->state.fr1 << std::endl;
-         std::cout << "fr2 = " << result->state.fr2 << std::endl;
-         std::cout << "fr3 = " << result->state.fr3 << std::endl;
-         std::cout << "fr4 = " << result->state.fr4 << std::endl;
-         // TODO: sendNextTest
-         mSocket->disconnect();
+         handleTestResult(result);
          break;
       }
       case PacketHeader::ExecutePairedTest:
@@ -154,7 +201,6 @@ private:
    {
       PacketHeader *header;
       assert(mSocket == socket);
-      std::cout << "Receive size " << size << ": " << buffer << std::endl;
 
       if (mCurrentPacket.size() == 0) {
          assert(size == sizeof(PacketHeader));
@@ -198,10 +244,29 @@ void addTestServer(Socket *socket)
    gTestServers.emplace_back(new TestServer(socket));
 }
 
+void loadTests()
+{
+   fs::create_directories("tests/cpu/wiiu");
+
+   // Read all tests
+   for (auto &p : fs::directory_iterator("tests/cpu/input")) {
+      std::cout << p.path().string() << std::endl;
+      std::ifstream file(p.path().string());
+      assert(file.is_open());
+      cereal::BinaryInputArchive input(file);
+      gTestSet.emplace_back();
+      auto &test = gTestSet.back();
+      input(test);
+      test.name = p.path().filename().string();
+   }
+}
+
 int main(int argc, char **argv)
 {
    WSADATA wsaData;
    WSAStartup(MAKEWORD(2, 2), &wsaData);
+
+   loadTests();
    gInstructionTable.initialise();
 
    NetworkThread thread;

@@ -12,7 +12,7 @@
     <ClCompile Include="..\tools\hwtest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\instructiontable.cpp">
+    <ClCompile Include="..\src\cpu\instructiontable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
