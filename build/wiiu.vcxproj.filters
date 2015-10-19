@@ -594,6 +594,9 @@
     <ClCompile Include="..\src\cpu\instructioninfo.cpp">
       <Filter>Source Files\cpu</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\hwtestcompare.cpp">
+      <Filter>Source Files\ppc</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\modules\coreinit\coreinit.h">

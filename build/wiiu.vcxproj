@@ -45,11 +45,11 @@
     <LibraryPath>$(SolutionDir)\obj\$(Configuration);$(LibraryPath)</LibraryPath>
     <IntDir>obj\$(ProjectName)\$(Configuration)\</IntDir>
     <OutDir>$(SolutionDir)\obj\$(Configuration)\</OutDir>
-    <IncludePath>$(SolutionDir)\src;$(SolutionDir)\libraries\asmjit\src;$(SolutionDir)\libraries\docopt;$(SolutionDir)\libraries\gsl\include;$(SolutionDir)\libraries\pugixml\src;$(SolutionDir)\libraries\spdlog\include;$(SolutionDir)\libraries\zlib;$(SolutionDir)\libraries\cereal\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\tools;$(SolutionDir)\src;$(SolutionDir)\libraries\asmjit\src;$(SolutionDir)\libraries\docopt;$(SolutionDir)\libraries\gsl\include;$(SolutionDir)\libraries\pugixml\src;$(SolutionDir)\libraries\spdlog\include;$(SolutionDir)\libraries\zlib;$(SolutionDir)\libraries\cereal\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(SolutionDir)\src;$(SolutionDir)\libraries\asmjit\src;$(SolutionDir)\libraries\docopt;$(SolutionDir)\libraries\gsl\include;$(SolutionDir)\libraries\pugixml\src;$(SolutionDir)\libraries\spdlog\include;$(SolutionDir)\libraries\zlib;$(SolutionDir)\libraries\cereal\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\tools;$(SolutionDir)\src;$(SolutionDir)\libraries\asmjit\src;$(SolutionDir)\libraries\docopt;$(SolutionDir)\libraries\gsl\include;$(SolutionDir)\libraries\pugixml\src;$(SolutionDir)\libraries\spdlog\include;$(SolutionDir)\libraries\zlib;$(SolutionDir)\libraries\cereal\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\obj\$(Configuration);$(LibraryPath)</LibraryPath>
     <IntDir>obj\$(ProjectName)\$(Configuration)\</IntDir>
     <OutDir>$(SolutionDir)\obj\$(Configuration)\</OutDir>
@@ -133,6 +133,7 @@
     <ClCompile Include="..\src\gpu\latte_opcodes.cpp" />
     <ClCompile Include="..\src\gpu\latte_tiling.cpp" />
     <ClCompile Include="..\src\gpu\mesa_r600_tiling.cpp" />
+    <ClCompile Include="..\src\hwtestcompare.cpp" />
     <ClCompile Include="..\src\loader.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\mem\mem.cpp" />

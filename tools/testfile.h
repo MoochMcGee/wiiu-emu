@@ -6,8 +6,13 @@
 #include "cpu/state.h"
 #include "cpu/instructiondata.h"
 
+namespace titties
+{
+
 struct RegisterState
 {
+   RegisterState() = default;
+
    xer_t xer;
    cr_t cr;
    fpscr_t fpscr;
@@ -40,6 +45,8 @@ struct TestData
       memset(this, 0, sizeof(TestData));
    }
 
+   ~TestData() = default;
+
    Instruction instr;
    RegisterState input;
    RegisterState output;
@@ -55,6 +62,9 @@ struct TestData
 
 struct TestFile
 {
+   TestFile() = default;
+   ~TestFile() = default;
+
    std::string name;
    std::vector<TestData> tests;
 
@@ -64,3 +74,5 @@ struct TestFile
       ar(tests);
    }
 };
+
+}

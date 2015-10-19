@@ -11,6 +11,7 @@
 #include "testfile.h"
 #include "cpu/instructiondata.h"
 
+using namespace titties;
 namespace fs = std::experimental::filesystem;
 
 std::vector<TestFile> gTestSet;

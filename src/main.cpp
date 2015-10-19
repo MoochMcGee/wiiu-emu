@@ -41,8 +41,8 @@ gLog;
 
 void initialiseEmulator();
 bool test(const std::string &as, const std::string &path);
-bool fuzzTest();
 bool play(const fs::HostPath &path);
+bool fuzzTest();
 
 static const char USAGE[] =
 R"(WiiU Emulator
@@ -51,6 +51,7 @@ Usage:
    wiiu play [--jit | --jitdebug] [--logfile] [--log-async] [--log-level=<log-level>] <game directory>
    wiiu test [--jit | --jitdebug] [--logfile] [--log-async] [--log-level=<log-level>] [--as=<ppcas>] <test directory>
    wiiu fuzz
+   wiiu hwtest
    wiiu (-h | --help)
    wiiu --version
 
@@ -108,7 +109,7 @@ int main(int argc, char **argv)
    gLog = std::make_shared<spdlog::logger>("logger", begin(sinks), end(sinks));
    gLog->set_level(spdlog::level::info);
 
-   auto log_level = args["--log-level"].isString() ? args["--log-level"].asString() : "info";
+   auto log_level = args["--log-level"].isString() ? args["--log-level"].asString() : "trace";
    for (int l = spdlog::level::trace; l <= spdlog::level::off; l++) {
       if (spdlog::level::to_str((spdlog::level::level_enum) l) == log_level) {
          gLog->set_level((spdlog::level::level_enum) l);
@@ -124,6 +125,9 @@ int main(int argc, char **argv)
    } else if (args["fuzz"].asBool()) {
       gLog->set_pattern("%v");
       result = fuzzTest();
+   } else if (args["hwtest"].asBool()) {
+      gLog->set_pattern("%v");
+      result = runHWTest();
    } else if (args["test"].asBool()) {
       gLog->set_pattern("%v");
       result = test(args["--as"].asString(), args["<test directory>"].asString());

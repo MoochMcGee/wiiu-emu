@@ -12,6 +12,8 @@
 #include "cpu/instructiondata.h"
 #include "testfile.h"
 
+using namespace titties;
+
 static const auto GPR_BASE = 3;
 static const auto FPR_BASE = 1;
 static const auto CRF_BASE = 2;
